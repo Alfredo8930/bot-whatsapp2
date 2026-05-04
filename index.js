@@ -37,9 +37,7 @@ const AUTH_FOLDER = path.join(__dirname, "auth");
 // COMANDOS POR DEFECTO
 // ==============================
 const DEFAULT_COMANDOS = {
-    ".menu":      "✨ *KANE STREAM* ✨\n\n📺 Escribe .servicios o .pago para más info.",
-    ".pago":      "✨ *FORMA DE PAGO* ✨\n\n🏦 Banco: Mercado Pago\n🔢 722969010479464673\n👤 Nancy Areli Frias\n📝 Concepto: Dulces 🍭",
-    ".servicios": "📺 *SERVICIOS*\n\n🔥 Netflix → $80\n🔥 Disney+ → $70\n🔥 HBO Max → $60\n🔥 Spotify → $50"
+    ".bienvenida": "👋 *¡Bienvenido al grupo!*\n\nGracias por unirte.\nAquí encontrarás toda la información que necesitas.\n\n_Si tienes dudas, contacta a un administrador._"
 };
 
 // ==============================
@@ -321,15 +319,46 @@ async function startBot() {
         if (firstLine === ".ayuda") {
             if (!await isAdmin(sock, groupId, lidJid, senderJid)) return;
             const ayuda =
-                `🛠️ *PANEL DE ADMINISTRADOR*\n\n` +
-                `➕ *Crear comando:*\n.nuevo .artemis\n🤖 Texto línea 1\nTexto línea 2\n\n` +
-                `✏️ *Editar comando:*\n.editar .artemis\nNuevo texto\n\n` +
-                `🗑️ *Eliminar:* .eliminar .comando\n\n` +
-                `📋 *Ver comandos:* .listar\n\n` +
-                `👥 *Expulsar:* .expulsar @usuario\n\n` +
-                `🔒 *Cerrar grupo:* .cerrargrupo\n` +
-                `🔓 *Abrir grupo:* .abrirgrupo`;
+                `╔════════════════════════════╗\n` +
+                `║     🤖  *A R T E M I S*     ║\n` +
+                `║    Panel de Administración   ║\n` +
+                `╚════════════════════════════╝\n\n` +
+                `*── GESTIÓN DE COMANDOS ──*\n\n` +
+                `➕ *Crear comando*\n` +
+                `┌ .nuevo .comando\n` +
+                `└ Texto del mensaje (puede tener\n  varias líneas)\n\n` +
+                `✏️ *Editar comando existente*\n` +
+                `┌ .editar .comando\n` +
+                `└ Nuevo texto del mensaje\n\n` +
+                `🗑️ *Eliminar comando*\n` +
+                `└ .eliminar .comando\n\n` +
+                `📋 *Ver todos los comandos*\n` +
+                `└ .listar\n\n` +
+                `👋 *Enviar mensaje de bienvenida*\n` +
+                `└ .bienvenida\n\n` +
+                `*── GESTIÓN DEL GRUPO ──*\n\n` +
+                `👤 *Expulsar participante*\n` +
+                `└ .expulsar @usuario\n\n` +
+                `🔒 *Cerrar grupo* — solo admins escriben\n` +
+                `└ .cerrargrupo\n\n` +
+                `🔓 *Abrir grupo* — todos pueden escribir\n` +
+                `└ .abrirgrupo\n\n` +
+                `━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                `_Solo los administradores del grupo_\n` +
+                `_pueden ejecutar estos comandos._`;
             await sock.sendMessage(from, { text: ayuda });
+            return;
+        }
+
+        // .bienvenida — editable desde WhatsApp con .editar .bienvenida
+        if (firstLine === ".bienvenida") {
+            if (!await isAdmin(sock, groupId, lidJid, senderJid)) {
+                await sock.sendMessage(from, { text: "⛔ Solo administradores." });
+                return;
+            }
+            const actuales = await getComandos(groupId);
+            const texto = actuales[".bienvenida"] || DEFAULT_COMANDOS[".bienvenida"];
+            await sock.sendMessage(from, { text: texto });
             return;
         }
 
@@ -361,7 +390,16 @@ async function startBot() {
             }
             try {
                 await sock.groupSettingUpdate(from, "announcement");
-                await sock.sendMessage(from, { text: "🔒 Grupo cerrado. Solo admins pueden escribir." });
+                await sock.sendMessage(from, {
+                    text:
+                        `╔════════════════════════════╗\n` +
+                        `║     🔒  *GRUPO CERRADO*     ║\n` +
+                        `╚════════════════════════════╝\n\n` +
+                        `El grupo ha sido *cerrado temporalmente*.\n\n` +
+                        `⚠️ Por el momento solo los administradores\n` +
+                        `pueden enviar mensajes.\n\n` +
+                        `Agradecemos tu comprensión. 🙏`
+                });
             } catch {
                 await sock.sendMessage(from, { text: "❌ El bot debe ser administrador del grupo." });
             }
@@ -376,7 +414,16 @@ async function startBot() {
             }
             try {
                 await sock.groupSettingUpdate(from, "not_announcement");
-                await sock.sendMessage(from, { text: "🔓 Grupo abierto. Todos pueden escribir." });
+                await sock.sendMessage(from, {
+                    text:
+                        `╔════════════════════════════╗\n` +
+                        `║     🔓  *GRUPO ABIERTO*     ║\n` +
+                        `╚════════════════════════════╝\n\n` +
+                        `El grupo ha sido *abierto* nuevamente. ✅\n\n` +
+                        `Ya pueden participar libremente.\n` +
+                        `Recuerda mantener el respeto y las\n` +
+                        `normas del grupo. 😊`
+                });
             } catch {
                 await sock.sendMessage(from, { text: "❌ El bot debe ser administrador del grupo." });
             }
@@ -390,6 +437,28 @@ async function startBot() {
         const comandos = await getComandos(groupId);
         if (comandos[firstLine]) {
             await sock.sendMessage(from, { text: comandos[firstLine] });
+        }
+    });
+
+    // ==============================
+    // BIENVENIDA AUTOMÁTICA
+    // Se activa cuando alguien entra al grupo
+    // ==============================
+    sock.ev.on("group-participants.update", async ({ id, participants, action }) => {
+        if (action !== "add") return;
+
+        const bienvenida =
+            `╔════════════════════════════╗\n` +
+            `║     🤖  *A R T E M I S*     ║\n` +
+            `╚════════════════════════════╝\n\n` +
+            `¡Bienvenido al grupo! 👋\n\n` +
+            `Estoy aquí para brindarte una experiencia\n` +
+            `de compra rápida, segura y sin complicaciones.\n\n`;
+
+        try {
+            await sock.sendMessage(id, { text: bienvenida });
+        } catch (err) {
+            console.error("Error enviando bienvenida:", err.message);
         }
     });
 }
