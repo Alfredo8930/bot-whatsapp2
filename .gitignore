@@ -1,0 +1,54 @@
+# Dependencias
+node_modules/
+package-lock.json
+yarn.lock
+
+# Autenticación de WhatsApp (MUY IMPORTANTE)
+auth/
+*.creds.json
+creds.json
+session-*.json
+
+# Variables de entorno
+.env
+.env.local
+.env.production
+.env.development
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Base de datos
+*.db
+*.mongodb
+dump/
+mongodump/
+
+# Archivos temporales
+tmp/
+temp/
+*.tmp
+*.temp
+
+# SO
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# MongoDB Compass
+*.mongodb-compass
+
+# PM2
+.pm2/
+
+# Respaldo de WhatsApp
+*.wa
