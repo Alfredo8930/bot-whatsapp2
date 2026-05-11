@@ -778,9 +778,12 @@ async function startBot() {
         // .imagen — GENERAR IMAGEN CON IA
         // ==============================
         if (firstLine.startsWith(".imagen ")) {
-            const descripcion = firstLine.slice(8).trim();
-            const resultado = await ejecutarImagen(descripcion);
-            await sock.sendMessage(from, { text: resultado.mensaje });
+            const descripcion = lineas.join("\n").slice(8).trim();
+            const resultado = await ejecutarImagen(descripcion, sock, from);
+            // Si hay mensaje de error o de ayuda, mandarlo como texto
+            if (resultado.mensaje) {
+                await sock.sendMessage(from, { text: resultado.mensaje });
+            }
             return;
         }
 

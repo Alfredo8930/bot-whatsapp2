@@ -14,7 +14,7 @@ async function ejecutarIA(pregunta) {
     
     try {
         const model = genAI.getGenerativeModel({ 
-            model: "gemini-pro",
+            model: "gemini-1.5-flash",
             generationConfig: {
                 temperature: 0.9,
                 maxOutputTokens: 1000,
