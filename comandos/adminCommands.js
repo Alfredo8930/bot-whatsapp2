@@ -87,6 +87,15 @@ async function enviarAvisoATodos(sock, grupos, mensaje) {
     }
 }
 
+// .reset-session - Forzar nueva vinculación (solo dueño)
+if (comando === '.reset-session') {
+    await sessionService.deleteSession(AUTH_FOLDER);
+    return {
+        exito: true,
+        mensaje: '🔄 Sesión reiniciada. Reinicia el bot para vincular nuevamente.'
+    };
+}
+
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
