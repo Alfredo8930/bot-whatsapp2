@@ -1,10 +1,3 @@
-const fs = require("fs");
-
-if (fs.existsSync("./auth")) {
-    fs.rmSync("./auth", { recursive: true, force: true });
-    console.log("🧹 Carpeta auth eliminada");
-}
-
 const {
     default: makeWASocket,
     useMultiFileAuthState,
@@ -26,6 +19,9 @@ const { ejecutarImagen } = require('./comandos/imagen.js');
 const maintenanceService = require('./services/maintenanceService');
 const adminService = require('./services/adminService');
 const { ejecutarComandoAdmin } = require('./comandos/adminCommands');
+
+const SessionService = require('./services/sessionService');
+let sessionService;
 
 // Array para almacenar grupos activos
 const gruposActivos = new Set();
@@ -216,16 +212,27 @@ function checkCooldown(groupId, jid) {
 async function startBot() {
     await connectDB();
 
+    // Inicializar servicio de sesión
+    sessionService = new SessionService(db);
+    
+    // Intentar cargar sesión guardada
+    await sessionService.loadSession(AUTH_FOLDER);
+    
     const { state, saveCreds } = await useMultiFileAuthState(AUTH_FOLDER);
     const { version } = await fetchLatestBaileysVersion();
-
+    
     const sock = makeWASocket({
         version,
         auth: state,
         browser: Browsers.ubuntu("Chrome")
     });
-
-    sock.ev.on("creds.update", saveCreds);
+    
+    // Guardar credenciales en MongoDB cuando se actualicen
+    sock.ev.on('creds.update', async () => {
+        await saveCreds();
+        await sessionService.saveSession(AUTH_FOLDER);
+        console.log("💾 Credenciales guardadas en MongoDB");
+    });
 
     const phoneNumber = process.env.PHONE_NUMBER;
 
