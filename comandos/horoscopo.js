@@ -1,74 +1,56 @@
 // comandos/horoscopo.js
 const axios = require('axios');
+const translate = require('@vitalets/google-translate-api');
 const horoscoposLocal = require('../data/horoscopos.js');
 const { getFormattedDate } = require('../utils/dateUtils.js');
 
-// Mapeo de signos y sus variantes
 const signosMap = {
-    // español
-    'aries': 'aries',
-    'tauro': 'taurus',
-    'geminis': 'gemini',
-    'geminis': 'gemini',
-    'cancer': 'cancer',
-    'cáncer': 'cancer',
-    'leo': 'leo',
-    'virgo': 'virgo',
-    'libra': 'libra',
-    'escorpio': 'scorpio',
-    'escorpión': 'scorpio',
-    'sagitario': 'sagittarius',
-    'capricornio': 'capricorn',
-    'acuario': 'aquarius',
-    'piscis': 'pisces',
-    // inglés
-    'aquarius': 'aquarius',
-    'pisces': 'pisces',
-    'capricorn': 'capricorn',
-    'sagittarius': 'sagittarius',
-    'scorpio': 'scorpio',
-    'taurus': 'taurus',
-    'gemini': 'gemini',
-    'cancer': 'cancer',
-    'leo': 'leo',
-    'virgo': 'virgo',
-    'libra': 'libra'
+    'aries': 'aries', 'tauro': 'taurus', 'geminis': 'gemini',
+    'cancer': 'cancer', 'leo': 'leo', 'virgo': 'virgo',
+    'libra': 'libra', 'escorpio': 'scorpio', 'sagitario': 'sagittarius',
+    'capricornio': 'capricorn', 'acuario': 'aquarius', 'piscis': 'pisces',
+    'aquarius': 'aquarius', 'pisces': 'pisces', 'capricorn': 'capricorn',
+    'sagittarius': 'sagittarius', 'scorpio': 'scorpio', 'taurus': 'taurus',
+    'gemini': 'gemini'
 };
 
-// Nombres en español para mostrar
 const nombresEspañol = {
-    aries: 'ARIES',
-    taurus: 'TAURO',
-    gemini: 'GÉMINIS',
-    cancer: 'CÁNCER',
-    leo: 'LEO',
-    virgo: 'VIRGO',
-    libra: 'LIBRA',
-    scorpio: 'ESCORPIO',
-    sagittarius: 'SAGITARIO',
-    capricorn: 'CAPRICORNIO',
-    aquarius: 'ACUARIO',
-    pisces: 'PISCIS'
+    aries: 'ARIES', taurus: 'TAURO', gemini: 'GÉMINIS',
+    cancer: 'CÁNCER', leo: 'LEO', virgo: 'VIRGO',
+    libra: 'LIBRA', scorpio: 'ESCORPIO', sagittarius: 'SAGITARIO',
+    capricorn: 'CAPRICORNIO', aquarius: 'ACUARIO', pisces: 'PISCIS'
 };
 
 async function obtenerHoroscopoAPI(signo) {
     const signoAPI = signosMap[signo.toLowerCase()];
     if (!signoAPI) return null;
     
-    // Solo usar la API que funciona
     try {
         const response = await axios.get(`https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign=${signoAPI}&day=TODAY`);
         
         console.log(`✅ API funcionando para ${signo}`);
         
         if (response.data && response.data.data) {
-            const data = response.data.data;
+            const horoscopoIngles = response.data.data.horoscope;
+            
+            // Traducir a español usando Google Translate
+            let horoscopoEspanol = horoscopoIngles;
+            try {
+                const traduccion = await translate(horoscopoIngles, { to: 'es' });
+                horoscopoEspanol = traduccion.text;
+                console.log(`✅ Traducción completada para ${signo}`);
+            } catch (error) {
+                console.error(`❌ Error en traducción: ${error.message}`);
+                // Si falla la traducción, usamos el texto original
+                horoscopoEspanol = horoscopoIngles + "\n\n(Texto original en inglés - error de traducción)";
+            }
+            
             return {
-                horoscopo: data.horoscope,
-                compatibilidad: "Consulta con tu astrólogo favorito", // Fallback
-                color: "🌈 Arcoíris", // Fallback
-                numero: Math.floor(Math.random() * 12) + 1, // Número aleatorio del 1-12
-                estado_animo: "✨ Energético" // Fallback
+                horoscopo: horoscopoEspanol,
+                compatibilidad: obtenerCompatibilidad(signoAPI),
+                color: obtenerColor(signoAPI),
+                numero: Math.floor(Math.random() * 30) + 1,
+                estado_animo: obtenerEstadoAnimo(signoAPI)
             };
         }
         return null;
@@ -78,9 +60,62 @@ async function obtenerHoroscopoAPI(signo) {
     }
 }
 
+function obtenerCompatibilidad(signo) {
+    const compatibilidad = {
+        aries: 'Leo o Sagitario',
+        taurus: 'Virgo o Capricornio',
+        gemini: 'Libra o Acuario',
+        cancer: 'Escorpio o Piscis',
+        leo: 'Aries o Sagitario',
+        virgo: 'Tauro o Capricornio',
+        libra: 'Géminis o Acuario',
+        scorpio: 'Cáncer o Piscis',
+        sagittarius: 'Aries o Leo',
+        capricorn: 'Tauro o Virgo',
+        aquarius: 'Géminis o Libra',
+        pisces: 'Cáncer o Escorpio'
+    };
+    return compatibilidad[signo] || 'Depende de tu energía actual';
+}
+
+function obtenerColor(signo) {
+    const colores = {
+        aries: '🔴 Rojo',
+        taurus: '🟢 Verde',
+        gemini: '🟡 Amarillo',
+        cancer: '⚪ Blanco',
+        leo: '🟠 Naranja',
+        virgo: '🟤 Marrón',
+        libra: '💗 Rosa',
+        scorpio: '🟣 Morado',
+        sagittarius: '🔵 Azul',
+        capricorn: '⚫ Gris',
+        aquarius: '🔵 Turquesa',
+        pisces: '🟣 Lila'
+    };
+    return colores[signo] || '🌈 Multicolor';
+}
+
+function obtenerEstadoAnimo(signo) {
+    const animos = {
+        aries: '⚡ Energético',
+        taurus: '😌 Tranquilo',
+        gemini: '💬 Sociable',
+        cancer: '🥺 Sensible',
+        leo: '🎭 Confiado',
+        virgo: '📋 Organizado',
+        libra: '🎨 Romántico',
+        scorpio: '🔮 Misterioso',
+        sagittarius: '😄 Optimista',
+        capricorn: '📈 Ambicioso',
+        aquarius: '💡 Creativo',
+        pisces: '🎨 Soñador'
+    };
+    return animos[signo] || '😊 Feliz';
+}
+
 function obtenerHoroscopoLocal(signo) {
     const signoKey = signo.toLowerCase();
-    // Buscar en el mapa de nombres
     let key = null;
     for (const [localKey, apiKey] of Object.entries(signosMap)) {
         if (localKey === signoKey || apiKey === signoKey) {
@@ -88,7 +123,6 @@ function obtenerHoroscopoLocal(signo) {
             break;
         }
     }
-    
     if (!key) return null;
     
     const data = horoscoposLocal[key];
@@ -104,28 +138,22 @@ function obtenerHoroscopoLocal(signo) {
 }
 
 function formatearHoroscopo(signoUsuario, data, fuente = 'api') {
-    const signoKey = signoUsuario.toLowerCase();
-    const signoAPI = signosMap[signoKey] || signoKey;
+    const signoAPI = signosMap[signoUsuario.toLowerCase()] || signoUsuario.toLowerCase();
     const nombreSigno = nombresEspañol[signoAPI] || signoUsuario.toUpperCase();
     const fechaActual = getFormattedDate();
     
     let mensaje = `🔮 *HORÓSCOPO DE ${nombreSigno}*\n`;
-    mensaje += `📅 ${fechaActual}\n\n`;
-    mensaje += `━━━━━━━━━━━━━━━━━━\n\n`;
-    mensaje += `${data.horoscopo}\n\n`;
-    mensaje += `━━━━━━━━━━━━━━━━━━\n\n`;
+    mensaje += `📅 ${fechaActual}\n\n━━━━━━━━━━━━━━━━━━\n\n`;
+    mensaje += `${data.horoscopo}\n\n━━━━━━━━━━━━━━━━━━\n\n`;
     mensaje += `💖 *Compatibilidad:* ${data.compatibilidad}\n`;
     mensaje += `🎨 *Color:* ${data.color}\n`;
     mensaje += `🍀 *Número de suerte:* ${data.numero}\n`;
     mensaje += `😊 *Estado de ánimo:* ${data.estado_animo}\n\n`;
     
     if (fuente === 'local') {
-        mensaje += `━━━━━━━━━━━━━━━━━━\n`;
-        mensaje += `⚠️ *Horóscopo local* (API temporalmente no disponible)\n`;
+        mensaje += `━━━━━━━━━━━━━━━━━━\n⚠️ *Datos locales* (API temporalmente no disponible)\n`;
     }
-    
     mensaje += `━━━━━━━━━━━━━━━━━━`;
-    
     return mensaje;
 }
 
@@ -137,23 +165,19 @@ async function ejecutarHoroscopo(signoUsuario) {
         };
     }
     
-    const signoKey = signoUsuario.toLowerCase();
-    if (!signosMap[signoKey] && !Object.values(signosMap).includes(signoKey)) {
+    if (!signosMap[signoUsuario.toLowerCase()] && !Object.values(signosMap).includes(signoUsuario.toLowerCase())) {
         return {
             exito: false,
             mensaje: `❌ Signo *${signoUsuario}* no válido.\n\n📋 *Signos disponibles:*\nAries, Tauro, Géminis, Cáncer, Leo, Virgo, Libra, Escorpio, Sagitario, Capricornio, Acuario, Piscis`
         };
     }
     
-    // Intentar API primero
     let data = await obtenerHoroscopoAPI(signoUsuario);
     let fuente = 'api';
     
-    // Fallback a local si API falla
     if (!data) {
         data = obtenerHoroscopoLocal(signoUsuario);
         fuente = 'local';
-        
         if (!data) {
             return {
                 exito: false,
@@ -162,12 +186,7 @@ async function ejecutarHoroscopo(signoUsuario) {
         }
     }
     
-    const mensaje = formatearHoroscopo(signoUsuario, data, fuente);
-    
-    return {
-        exito: true,
-        mensaje: mensaje
-    };
+    return { exito: true, mensaje: formatearHoroscopo(signoUsuario, data, fuente) };
 }
 
 module.exports = { ejecutarHoroscopo };
