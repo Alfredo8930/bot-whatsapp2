@@ -18,7 +18,6 @@ const { ejecutarImagen } = require('./comandos/imagen.js');
 // Después de los otros requires
 const maintenanceService = require('./services/maintenanceService');
 const adminService = require('./services/adminService');
-const { ejecutarComandoAdmin } = require('./comandos/adminCommands');
 const { ejecutarComandoAdmin, setSessionService } = require('./comandos/adminCommands');
 
 const SessionService = require('./services/sessionService');
