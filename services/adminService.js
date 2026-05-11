@@ -14,6 +14,10 @@ class AdminService {
     isAuthorized(senderJid) {
         // Extraer número sin @s.whatsapp.net
         const number = senderJid.split('@')[0];
+
+        // ⭐ ESTO TE DIRÁ QUÉ NÚMERO DETECTA EL BOT
+        console.log(`📱 Número que te detectó: ${number}`);
+        console.log(`👑 Dueño configurado: ${process.env.OWNER_NUMBER}`);
         
         // Verificar si es el dueño (número configurado)
         const isOwner = number === process.env.OWNER_NUMBER;
