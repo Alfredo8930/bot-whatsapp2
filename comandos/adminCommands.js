@@ -2,102 +2,75 @@
 const maintenanceService = require('../services/maintenanceService');
 const adminService = require('../services/adminService');
 
+// Variable global para sessionService (se setea desde index.js)
+let sessionServiceGlobal = null;
+
+function setSessionService(service) {
+    sessionServiceGlobal = service;
+}
+
 async function ejecutarComandoAdmin(comando, args, senderJid, sock, grupos) {
-    // Verificar autorización
     if (!adminService.isAuthorized(senderJid)) {
         return {
             exito: false,
-            mensaje: '⛔ *ACCESO DENEGADO*\n\nNo tienes permiso para usar comandos de administración remota.\n\nEste incidente ha sido registrado.'
+            mensaje: '⛔ *ACCESO DENEGADO*\n\nNo tienes permiso para usar comandos de administración.'
         };
     }
 
-    // .mantenimiento on [razón]
+    // .estado
+    if (comando === '.estado') {
+        const status = maintenanceService.getStatus();
+        return {
+            exito: true,
+            mensaje: `📊 *ESTADO DEL BOT*\n━━━━━━━━━━━━━━━━━━\n\n${status.message}`
+        };
+    }
+
+    // .mantenimiento on
     if (comando === '.mantenimiento' && args[0] === 'on') {
         const razon = args.slice(1).join(' ') || 'Actualización del sistema';
         const result = maintenanceService.activate(razon);
         
-        // Enviar aviso a todos los grupos
-        await enviarAvisoATodos(sock, grupos, result.message);
-        
-        return {
-            exito: true,
-            mensaje: result.message
-        };
+        for (const grupo of grupos) {
+            try {
+                await sock.sendMessage(grupo, { text: result.message });
+            } catch (error) {}
+        }
+        return { exito: true, mensaje: result.message };
     }
 
     // .mantenimiento off
     if (comando === '.mantenimiento' && args[0] === 'off') {
         const result = maintenanceService.deactivate();
         
-        // Enviar aviso a todos los grupos
-        await enviarAvisoATodos(sock, grupos, result.message);
-        
-        return {
-            exito: true,
-            mensaje: result.message
-        };
+        for (const grupo of grupos) {
+            try {
+                await sock.sendMessage(grupo, { text: result.message });
+            } catch (error) {}
+        }
+        return { exito: true, mensaje: result.message };
     }
 
-    // .estado - ver estado actual
-    if (comando === '.estado') {
-        const status = maintenanceService.getStatus();
-        return {
-            exito: true,
-            mensaje: `📊 *ESTADO DEL BOT*\n━━━━━━━━━━━━━━━━━━\n\n${status.message}\n\n🔐 *Admin remoto:* ${adminService.isAuthorized(senderJid) ? '✅ Autorizado' : '❌ No autorizado'}`
-        };
-    }
-
-    // .aviso [mensaje] - enviar aviso a todos los grupos
-    if (comando === '.aviso-todos') {
-        const mensaje = args.join(' ');
-        if (!mensaje) {
+    // .reset-session - Forzar nueva vinculación (solo dueño)
+    //if (comando === '.reset-session') {
+       // if (sessionServiceGlobal) {
+         //   await sessionServiceGlobal.deleteSession('./auth');
+          //  return {
+           //     exito: true,
+             /*   mensaje: '🔄 Sesión reiniciada. Reinicia el bot para vincular nuevamente.'
+            };
+        } else {
             return {
                 exito: false,
-                mensaje: '❌ Uso: .aviso-todos [mensaje]'
+                mensaje: '❌ Servicio de sesión no disponible.'
             };
         }
-        
-        const aviso = `📢 *AVISO IMPORTANTE*\n━━━━━━━━━━━━━━━━━━\n\n${mensaje}\n\n━━━━━━━━━━━━━━━━━━\n_Administración Artemis_`;
-        
-        await enviarAvisoATodos(sock, grupos, aviso);
-        
-        return {
-            exito: true,
-            mensaje: `✅ Aviso enviado a ${grupos.length} grupos`
-        };
-    }
+    }*/
 
     return {
         exito: false,
-        mensaje: '❌ Comando no reconocido.\n\nComandos disponibles:\n.mantenimiento on [razón]\n.mantenimiento off\n.estado\n.aviso-todos [mensaje]'
+        mensaje: '❌ Comandos: .estado | .mantenimiento on [razón] | .mantenimiento off | .reset-session'
     };
 }
 
-// Función para enviar aviso a todos los grupos
-async function enviarAvisoATodos(sock, grupos, mensaje) {
-    const gruposActivos = grupos.filter(g => g !== undefined);
-    
-    for (const grupo of gruposActivos) {
-        try {
-            await sock.sendMessage(grupo, { text: mensaje });
-            await delay(1000); // Esperar 1 segundo entre grupos para evitar spam
-        } catch (error) {
-            console.error(`Error enviando a ${grupo}:`, error.message);
-        }
-    }
-}
-
-// .reset-session - Forzar nueva vinculación (solo dueño)
-if (comando === '.reset-session') {
-    await sessionService.deleteSession(AUTH_FOLDER);
-    return {
-        exito: true,
-        mensaje: '🔄 Sesión reiniciada. Reinicia el bot para vincular nuevamente.'
-    };
-}
-
-function delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-module.exports = { ejecutarComandoAdmin, enviarAvisoATodos };
+module.exports = { ejecutarComandoAdmin, setSessionService };
