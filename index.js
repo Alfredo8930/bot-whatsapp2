@@ -19,6 +19,14 @@ const path = require("path");
 // Después de los otros requires
 const { ejecutarHoroscopo } = require('./comandos/horoscopo.js');
 
+// Después de los otros requires
+const maintenanceService = require('./services/maintenanceService');
+const adminService = require('./services/adminService');
+const { ejecutarComandoAdmin } = require('./comandos/adminCommands');
+
+// Array para almacenar grupos activos
+const gruposActivos = new Set();
+
 // ==============================
 // MONGODB
 // ==============================
@@ -255,7 +263,40 @@ async function startBot() {
         if (msg.key.fromMe) return;
 
         const from = msg.key.remoteJid;
-        if (!from.endsWith("@g.us")) return; // solo grupos
+
+
+        // MANEJO DE MENSAJES PRIVADOS (SOLO DUEÑO)
+        if (!from.endsWith("@g.us")) {
+            const senderJid = msg.key.participantAlt || msg.key.participant || msg.participant || from;
+            const rawText = (msg.message?.conversation || msg.message?.extendedTextMessage?.text || "").trim();
+            
+            if (!rawText) return;
+            
+            if (adminService.isAuthorized(senderJid)) {
+                const [cmd, ...args] = rawText.split(' ');
+                const resultado = await ejecutarComandoAdmin(cmd, args, senderJid, sock, Array.from(gruposActivos));
+                await sock.sendMessage(from, { text: resultado.mensaje });
+                return;
+            } else {
+                await sock.sendMessage(from, { text: "🤖 *ARTEMIS BOT*\n\nEste bot solo funciona en grupos.\n\nSi eres administrador, contacta al dueño." });
+                return;
+            }
+        }
+
+        // REGISTRAR GRUPOS ACTIVOS
+        const groupId = from;
+        if (!gruposActivos.has(groupId)) {
+            gruposActivos.add(groupId);
+        }
+
+        // VERIFICAR MANTENIMIENTO (SOLO PARA NO-ADMINS)
+        const lidJid = msg.key.participant || msg.participant || from;
+        const senderJid = msg.key.participantAlt || lidJid;
+
+        if (maintenanceService.isMaintenanceMode() && !(await isAdmin(sock, groupId, lidJid, senderJid))) {
+            await sock.sendMessage(from, { text: "🔧 *BOT EN MANTENIMIENTO*\n\nVuelve pronto!" });
+            return;
+        }
 
         const groupId = from;
         const lidJid    = msg.key.participant || msg.participant || from;
@@ -719,6 +760,18 @@ async function startBot() {
             const signo = firstLine.slice(6).trim(); // quita ".horo "
             const resultado = await ejecutarHoroscopo(signo);
             await sock.sendMessage(from, { text: resultado.mensaje });
+            return;
+        }
+
+
+         // .estado - ver estado del bot (desde grupos, solo admins)
+        if (firstLine === ".estado") {
+            if (!await isAdmin(sock, groupId, lidJid, senderJid)) {
+                await sock.sendMessage(from, { text: "⛔ Solo administradores." });
+                return;
+            }
+            const status = maintenanceService.getStatus();
+            await sock.sendMessage(from, { text: `📊 *ESTADO DEL BOT*\n━━━━━━━━━━━━━━━━━━\n\n${status.message}` });
             return;
         }
 
