@@ -1,6 +1,6 @@
 // comandos/horoscopo.js
 const axios = require('axios');
-const translate = require('@vitalets/google-translate-api');
+const translate = require('translate-google');
 const horoscoposLocal = require('../data/horoscopos.js');
 const { getFormattedDate } = require('../utils/dateUtils.js');
 
@@ -33,16 +33,14 @@ async function obtenerHoroscopoAPI(signo) {
         if (response.data && response.data.data) {
             const horoscopoIngles = response.data.data.horoscope;
             
-            // Traducir a español usando Google Translate
+            // Traducir a español
             let horoscopoEspanol = horoscopoIngles;
             try {
-                const traduccion = await translate(horoscopoIngles, { to: 'es' });
-                horoscopoEspanol = traduccion.text;
+                horoscopoEspanol = await translate(horoscopoIngles, { to: 'es' });
                 console.log(`✅ Traducción completada para ${signo}`);
             } catch (error) {
                 console.error(`❌ Error en traducción: ${error.message}`);
-                // Si falla la traducción, usamos el texto original
-                horoscopoEspanol = horoscopoIngles + "\n\n(Texto original en inglés - error de traducción)";
+                horoscopoEspanol = horoscopoIngles + "\n\n(Texto en inglés - error de traducción)";
             }
             
             return {
@@ -151,7 +149,7 @@ function formatearHoroscopo(signoUsuario, data, fuente = 'api') {
     mensaje += `😊 *Estado de ánimo:* ${data.estado_animo}\n\n`;
     
     if (fuente === 'local') {
-        mensaje += `━━━━━━━━━━━━━━━━━━\n⚠️ *Datos locales* (API temporalmente no disponible)\n`;
+        mensaje += `━━━━━━━━━━━━━━━━━━\n⚠️ *Datos locales* (API no disponible)\n`;
     }
     mensaje += `━━━━━━━━━━━━━━━━━━`;
     return mensaje;
@@ -161,14 +159,14 @@ async function ejecutarHoroscopo(signoUsuario) {
     if (!signoUsuario) {
         return {
             exito: false,
-            mensaje: `❌ *Uso correcto:*\n.horo [signo]\n\n📋 *Signos disponibles:*\nAries, Tauro, Géminis, Cáncer, Leo, Virgo, Libra, Escorpio, Sagitario, Capricornio, Acuario, Piscis`
+            mensaje: `❌ *Uso correcto:*\n.horo [signo]\n\n📋 *Signos:* Aries, Tauro, Géminis, Cáncer, Leo, Virgo, Libra, Escorpio, Sagitario, Capricornio, Acuario, Piscis`
         };
     }
     
     if (!signosMap[signoUsuario.toLowerCase()] && !Object.values(signosMap).includes(signoUsuario.toLowerCase())) {
         return {
             exito: false,
-            mensaje: `❌ Signo *${signoUsuario}* no válido.\n\n📋 *Signos disponibles:*\nAries, Tauro, Géminis, Cáncer, Leo, Virgo, Libra, Escorpio, Sagitario, Capricornio, Acuario, Piscis`
+            mensaje: `❌ Signo *${signoUsuario}* no válido.\n\n📋 *Signos:* Aries, Tauro, Géminis, Cáncer, Leo, Virgo, Libra, Escorpio, Sagitario, Capricornio, Acuario, Piscis`
         };
     }
     
