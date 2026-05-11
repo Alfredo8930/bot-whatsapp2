@@ -5,10 +5,13 @@ function getFormattedDate() {
         "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
     ];
     
-    const hoy = new Date();
-    const dia = hoy.getDate();
-    const mes = meses[hoy.getMonth()];
-    const año = hoy.getFullYear();
+    // Forzar hora de México (UTC-6)
+    const ahora = new Date();
+    const fechaMexico = new Date(ahora.toLocaleString("en-US", { timeZone: "America/Mexico_City" }));
+    
+    const dia = fechaMexico.getDate();
+    const mes = meses[fechaMexico.getMonth()];
+    const año = fechaMexico.getFullYear();
     
     return `${dia} de ${mes} de ${año}`;
 }
