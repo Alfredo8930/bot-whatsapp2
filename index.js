@@ -302,6 +302,12 @@ async function startBot() {
         const lidJid    = msg.key.participant || msg.participant || from;
         const senderJid = msg.key.participantAlt || lidJid;
 
+        // SOLO AGREGA ESTO DESPUÉS DE senderJid:
+        if (maintenanceService.isMaintenanceMode() && !(await isAdmin(sock, groupId, lidJid, senderJid))) {
+            await sock.sendMessage(from, { text: "🔧 Bot en mantenimiento. Vuelve pronto!" });
+            return;
+        }
+
         // rawText completo con saltos de línea
         const rawText = (
             msg.message?.conversation ||
