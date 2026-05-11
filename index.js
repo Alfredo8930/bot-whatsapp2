@@ -18,10 +18,7 @@ const { ejecutarImagen } = require('./comandos/imagen.js');
 // Después de los otros requires
 const maintenanceService = require('./services/maintenanceService');
 const adminService = require('./services/adminService');
-const { ejecutarComandoAdmin, setSessionService } = require('./comandos/adminCommands');
-
-const SessionService = require('./services/sessionService');
-let sessionService;
+const { ejecutarComandoAdmin } = require('./comandos/adminCommands');
 
 // Array para almacenar grupos activos
 const gruposActivos = new Set();
@@ -212,12 +209,6 @@ function checkCooldown(groupId, jid) {
 async function startBot() {
     await connectDB();
 
-    // Inicializar servicio de sesión
-    sessionService = new SessionService(db);
-    
-    // Intentar cargar sesión guardada
-    await sessionService.loadSession(AUTH_FOLDER);
-    
     const { state, saveCreds } = await useMultiFileAuthState(AUTH_FOLDER);
     const { version } = await fetchLatestBaileysVersion();
     
@@ -227,12 +218,7 @@ async function startBot() {
         browser: Browsers.ubuntu("Chrome")
     });
     
-    // Guardar credenciales en MongoDB cuando se actualicen
-    sock.ev.on('creds.update', async () => {
-        await saveCreds();
-        await sessionService.saveSession(AUTH_FOLDER);
-        console.log("💾 Credenciales guardadas en MongoDB");
-    });
+    sock.ev.on('creds.update', saveCreds);
 
     const phoneNumber = process.env.PHONE_NUMBER;
 
