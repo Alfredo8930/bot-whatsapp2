@@ -55,53 +55,27 @@ async function obtenerHoroscopoAPI(signo) {
     const signoAPI = signosMap[signo.toLowerCase()];
     if (!signoAPI) return null;
     
-    // Lista de APIs de respaldo
-    const apis = [
-        {
-            url: `https://aztro.sameerkumar.website/?sign=${signoAPI}&day=today`,
-            method: 'post',
-            transform: (data) => ({
-                horoscopo: data.description,
-                compatibilidad: data.compatibility.split(' ')[0],
-                color: data.color,
-                numero: data.lucky_number,
-                estado_animo: data.mood
-            })
-        },
-        {
-            url: `https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign=${signoAPI}&day=TODAY`,
-            method: 'get',
-            transform: (data) => ({
-                horoscopo: data.data.horoscope_data,
-                compatibilidad: data.data.compatibility,
-                color: data.data.color,
-                numero: data.data.lucky_number,
-                estado_animo: data.data.mood
-            })
+    // Solo usar la API que funciona
+    try {
+        const response = await axios.get(`https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign=${signoAPI}&day=TODAY`);
+        
+        console.log(`✅ API funcionando para ${signo}`);
+        
+        if (response.data && response.data.data) {
+            const data = response.data.data;
+            return {
+                horoscopo: data.horoscope,
+                compatibilidad: "Consulta con tu astrólogo favorito", // Fallback
+                color: "🌈 Arcoíris", // Fallback
+                numero: Math.floor(Math.random() * 12) + 1, // Número aleatorio del 1-12
+                estado_animo: "✨ Energético" // Fallback
+            };
         }
-    ];
-    
-    for (const api of apis) {
-        try {
-            let response;
-            if (api.method === 'post') {
-                response = await axios.post(api.url);
-            } else {
-                response = await axios.get(api.url);
-            }
-            
-            if (response.data) {
-                console.log(`✅ API funcionando: ${api.url}`);
-                return api.transform(response.data);
-            }
-        } catch (error) {
-            console.log(`❌ API falló: ${api.url}`);
-            continue;
-        }
+        return null;
+    } catch (error) {
+        console.error(`❌ Error API: ${error.message}`);
+        return null;
     }
-    
-    console.error(`❌ Todas las APIs fallaron para ${signo}`);
-    return null;
 }
 
 function obtenerHoroscopoLocal(signo) {
