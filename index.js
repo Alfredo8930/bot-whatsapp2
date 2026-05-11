@@ -19,6 +19,9 @@ const path = require("path");
 // Después de los otros requires
 const { ejecutarHoroscopo } = require('./comandos/horoscopo.js');
 
+const { ejecutarIA } = require('./comandos/ia.js');
+const { ejecutarImagen } = require('./comandos/imagen.js');
+
 // Después de los otros requires
 const maintenanceService = require('./services/maintenanceService');
 const adminService = require('./services/adminService');
@@ -550,6 +553,15 @@ async function startBot() {
                 `└ .horo [signo]\n` +
                 `Ejemplo: .horo acuario\n\n` +
                 `━━━━━━━━┛ ✠ ┗━━━━━━━━\n` +
+                `  🤖 *COMANDOS DE IA*\n` +
+                `━━━━━━━━┓ ✠ ┏━━━━━━━━\n\n` +
+                `💬 *Preguntar a IA*\n` +
+                `└ .ia [tu pregunta]\n` +
+                `Ejemplo: .ia ¿Qué es el amor?\n\n` +
+                `🎨 *Generar imagen*\n` +
+                `└ .imagen [descripción]\n` +
+                `Ejemplo: .imagen un dragon volando\n\n` +
+                `━━━━━━━━┛ ✠ ┗━━━━━━━━\n` +
                 `  🛡️ *SEGURIDAD*\n` +
                 `━━━━━━━━┓ ✠ ┏━━━━━━━━\n\n` +
                 `🚫 *Activar anti-links*\n` +
@@ -759,6 +771,25 @@ async function startBot() {
             return;
         }
 
+        // ==============================
+        // .ia — INTELIGENCIA ARTIFICIAL
+        // ==============================
+        if (firstLine.startsWith(".ia ")) {
+            const pregunta = firstLine.slice(4).trim();
+            const resultado = await ejecutarIA(pregunta);
+            await sock.sendMessage(from, { text: resultado.mensaje });
+            return;
+        }
+
+        // ==============================
+        // .imagen — GENERAR IMAGEN CON IA
+        // ==============================
+        if (firstLine.startsWith(".imagen ")) {
+            const descripcion = firstLine.slice(8).trim();
+            const resultado = await ejecutarImagen(descripcion);
+            await sock.sendMessage(from, { text: resultado.mensaje });
+            return;
+        }
 
          // .estado - ver estado del bot (desde grupos, solo admins)
         if (firstLine === ".estado") {
