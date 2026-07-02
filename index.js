@@ -32,10 +32,20 @@ const DB_NAME = "whatsapp_bot"; // base separada, no toca kanestream
 let db;
 
 async function connectDB() {
-    const client = new MongoClient(MONGO_URI);
-    await client.connect();
-    db = client.db(DB_NAME);
-    console.log("✅ Conectado a MongoDB");
+    while (true) {
+        try {
+            const client = new MongoClient(MONGO_URI, {
+                serverSelectionTimeoutMS: 10000
+            });
+            await client.connect();
+            db = client.db(DB_NAME);
+            console.log("✅ Conectado a MongoDB");
+            return;
+        } catch (err) {
+            console.error("❌ Error conectando a MongoDB, reintentando en 5s:", err.message);
+            await new Promise(resolve => setTimeout(resolve, 5000));
+        }
+    }
 }
 
 function col(name) {
@@ -207,7 +217,7 @@ function checkCooldown(groupId, jid) {
 // BOT
 // ==============================
 async function startBot() {
-    await connectDB();
+    if (!db) await connectDB();
 
     const { state, saveCreds } = await useMultiFileAuthState(AUTH_FOLDER);
     const { version } = await fetchLatestBaileysVersion();
@@ -245,7 +255,9 @@ async function startBot() {
         if (connection === "close") {
             const reconectar = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
             console.log("⚠️ Conexión cerrada. Reconectar:", reconectar);
-            if (reconectar) startBot();
+            if (reconectar) {
+                startBot().catch(err => console.error("❌ Error reconectando el bot:", err));
+            }
         } else if (connection === "open") {
             console.log("✅ BOT CONECTADO");
         }
@@ -970,4 +982,4 @@ process.on("unhandledRejection", (reason) => {
     console.error("❌ unhandledRejection:", reason);
 });
 
-startBot();
+startBot().catch(err => console.error("❌ Error iniciando el bot:", err));
